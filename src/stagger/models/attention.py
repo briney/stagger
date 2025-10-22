@@ -50,11 +50,25 @@ class MHAWithRoPE(nn.Module):
         )
         q, k = apply_rope(q, k, cos, sin)
 
-        # Build SDPA masks. key_padding_mask: [B, L] -> [B, 1, 1, L] (True = masked)
+        # Build SDPA masks. key_padding_mask: [B, L] -> [B, 1, 1, S] (True = masked)
         sdpa_mask = attn_mask
         if key_padding_mask is not None:
-            kpm = key_padding_mask[:, None, None, :]  # [B,1,1,L]
-            sdpa_mask = kpm if sdpa_mask is None else (sdpa_mask | kpm)
+            kpm = key_padding_mask[:, None, None, :]  # [B,1,1,S]
+            if sdpa_mask is None:
+                sdpa_mask = kpm
+            else:
+                # If an attention mask is provided, combine it with key padding.
+                # Prefer boolean combination when possible.
+                if sdpa_mask.dtype == torch.bool:
+                    sdpa_mask = sdpa_mask | kpm
+                else:
+                    # Assume additive mask; add -inf where kpm is True
+                    sdpa_mask = sdpa_mask + kpm.to(sdpa_mask.dtype) * float("-inf")
+
+        # Convert boolean mask to additive mask expected by SDPA
+        if sdpa_mask is not None and sdpa_mask.dtype == torch.bool:
+            sdpa_mask = sdpa_mask.float()
+            sdpa_mask = sdpa_mask.masked_fill(sdpa_mask > 0, float("-inf"))
 
         # SDPA expects [B,H,L,D]
         y = F.scaled_dot_product_attention(
