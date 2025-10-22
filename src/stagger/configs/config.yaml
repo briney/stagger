@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - model: encoder
+  - data: base
+  - train: base
+
+# Runtime overrides shared across entries; safe for accelerate later
+seed: 1337
+print_model_summary: true
+
+
