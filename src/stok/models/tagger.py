@@ -21,7 +21,6 @@ class TaggerModel(nn.Module):
         ffn_mult: float,
         dropout: float,
         attn_dropout: float,
-        rope_base: float,
         codebook: torch.Tensor,
         classifier_kwargs: dict[str, Any] | None = None,
         norm_type: str = "layernorm",
@@ -54,8 +53,6 @@ class TaggerModel(nn.Module):
             n_layers=n_layers,
             dropout=dropout,
             attn_dropout=attn_dropout,
-            rope_base=rope_base,
-            rope_dim=None,
             ffn_mult=ffn_mult,
             norm_type=norm_type,
         )

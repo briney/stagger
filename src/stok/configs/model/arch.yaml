@@ -17,11 +17,6 @@ decoder:
   attn_kv_heads: 2
   num_memory_tokens: 0
 
-rope:
-  base: 10000
-  scaling: null
-  rope_dim: null
-
 classifier:
   tie_to_codebook: true
   learnable_temperature: true

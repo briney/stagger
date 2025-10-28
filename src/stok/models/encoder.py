@@ -15,8 +15,6 @@ class Encoder(nn.Module):
         n_layers: int,
         dropout: float,
         attn_dropout: float,
-        rope_base: float,
-        rope_dim: int | None = None,
         ffn_mult: float = 4.0,
         norm_type: str = "layernorm",
     ):
@@ -34,7 +32,7 @@ class Encoder(nn.Module):
             norm_type: Normalization type ("layernorm" currently supported).
         """
         super().__init__()
-        self.rope = RotaryEmbedding(base=rope_base, rope_dim=rope_dim)
+        self.rope = RotaryEmbedding()
         self.layers = nn.ModuleList(
             [
                 EncoderBlock(

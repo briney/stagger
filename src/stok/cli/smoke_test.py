@@ -34,7 +34,6 @@ def main(cfg: DictConfig):
         ffn_mult=cfg.model.encoder.ffn_mult,
         dropout=cfg.model.encoder.dropout,
         attn_dropout=cfg.model.encoder.attn_dropout,
-        rope_base=cfg.model.rope.base,
         codebook=codebook,
         classifier_kwargs=dict(
             use_cosine=cfg.model.classifier.use_cosine,
