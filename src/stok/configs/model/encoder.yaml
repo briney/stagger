@@ -3,6 +3,7 @@ d_model: 768
 n_heads: 12
 n_layers: 12
 ffn_mult: 4.0           # expansion factor for SwiGLU
+max_length: 1280
 vocab_size: 32          # input AA vocab, e.g., 20 + pad/unk
 pad_id: 1
 
