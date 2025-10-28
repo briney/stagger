@@ -1,7 +1,0 @@
-d_model: 1024
-ffn_mult: 4
-n_layers: 12
-n_heads: 8
-max_length: 1280
-attn_kv_heads: 2       # for GQA
-num_memory_tokens: 0   # number of memory tokens, 0 disables

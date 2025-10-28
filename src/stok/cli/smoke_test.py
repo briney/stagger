@@ -26,14 +26,14 @@ def main(cfg: DictConfig):
     codebook_size = codebook.shape[0]
 
     model = TaggerModel(
-        vocab_size=cfg.model.vocab_size,
-        pad_id=cfg.model.pad_id,
-        d_model=cfg.model.d_model,
-        n_heads=cfg.model.n_heads,
-        n_layers=cfg.model.n_layers,
-        ffn_mult=cfg.model.ffn_mult,
-        dropout=cfg.model.dropout,
-        attn_dropout=cfg.model.attn_dropout,
+        vocab_size=cfg.model.encoder.vocab_size,
+        pad_id=cfg.model.encoder.pad_id,
+        d_model=cfg.model.encoder.d_model,
+        n_heads=cfg.model.encoder.n_heads,
+        n_layers=cfg.model.encoder.n_layers,
+        ffn_mult=cfg.model.encoder.ffn_mult,
+        dropout=cfg.model.encoder.dropout,
+        attn_dropout=cfg.model.encoder.attn_dropout,
         rope_base=cfg.model.rope.base,
         codebook=codebook,
         classifier_kwargs=dict(
@@ -42,7 +42,7 @@ def main(cfg: DictConfig):
             bias_from_code_norm=cfg.model.classifier.bias_from_code_norm,
             projector_dim=cfg.model.classifier.projector_dim,
         ),
-        norm_type=cfg.model.norm,
+        norm_type=cfg.model.encoder.norm,
     )
 
     if cfg.print_model_summary:
@@ -51,8 +51,8 @@ def main(cfg: DictConfig):
 
     # Tiny forward sanity check
     B, L = 2, 16
-    tokens = torch.randint(low=1, high=cfg.model.vocab_size, size=(B, L))
-    tokens[:, -2:] = cfg.model.pad_id
+    tokens = torch.randint(low=1, high=cfg.model.encoder.vocab_size, size=(B, L))
+    tokens[:, -2:] = cfg.model.encoder.pad_id
     labels = torch.randint(low=0, high=codebook_size, size=(B, L))
     labels[:, -2:] = (
         cfg.model.classifier.ignore_index
