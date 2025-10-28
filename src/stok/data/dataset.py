@@ -1,5 +1,43 @@
+import pandas as pd
 import torch
 from torch.utils.data import Dataset
+
+
+class VQIndicesDataset(Dataset):
+    """Dataset for loading VQ indices from a CSV file."""
+
+    def __init__(self, csv_path: str, max_length: int):
+        self.data = pd.read_csv(csv_path)
+        self.max_length = max_length
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
+        row = self.data.iloc[idx]
+        pid = row["pid"]
+        seq = row["protein_sequence"]
+        indices = [int(i) for i in row["indices"].split()]  #  space-separate string
+
+        idx_length = len(indices)
+        pad_length = self.max_length - idx_length
+
+        # pad indices with -1 and create a mask
+        padded_indices = indices + [-1] * pad_length
+        mask = [True] * idx_length + [False] * pad_length
+
+        # make tensors
+        indices_tensor = torch.tensor(padded_indices, dtype=torch.long)
+        mask_tensor = torch.tensor(mask, dtype=torch.bool)
+        nan_mask = indices_tensor != -1
+
+        return {
+            "pid": pid,
+            "indices": indices_tensor,
+            "seq": seq,
+            "masks": mask_tensor,
+            "nan_masks": nan_mask,
+        }
 
 
 class DummySequenceDataset(Dataset):
