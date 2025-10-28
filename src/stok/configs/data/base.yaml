@@ -1,5 +1,5 @@
 batch_size: 8
-max_len: 2048
+max_len: 1280
 num_workers: 4
 pin_memory: true
 
