@@ -15,6 +15,13 @@ class RotaryEmbedding(nn.Module):
     """
 
     def __init__(self, base: float = 10000.0, rope_dim: int | None = None):
+        """Initialize rotary positional embedding.
+
+        Args:
+            base: RoPE base frequency. Defaults to 10000.0.
+            rope_dim: Dimensionality used for RoPE (must be even). If None, uses
+                the last dimension of the head (head_dim). Defaults to None.
+        """
         super().__init__()
         self.base = base
         self.rope_dim = rope_dim
@@ -52,7 +59,14 @@ class RotaryEmbedding(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Return (cos, sin) caches for a given seq_len and head_dim.
 
-        Returns caches of shape [1, 1, L, rope_dim].
+        Args:
+            seq_len: Sequence length.
+            head_dim: Head dimension.
+            device: Device for tensors.
+            dtype: Data type for tensors.
+
+        Returns:
+            Tuple of (cos, sin) caches with shape [1, 1, L, rope_dim].
         """
         if (
             (self._cos is None)
@@ -69,8 +83,12 @@ class RotaryEmbedding(nn.Module):
 def rotate_half(x: torch.Tensor) -> torch.Tensor:
     """Rotate the last dimension (even size) by splitting into halves.
 
-    For an input [..., D] with even D, returns [..., D] where
-    the first half is -x[..., D/2:] and second half is x[..., :D/2].
+    Args:
+        x: Input tensor of shape [..., D] where D is even.
+
+    Returns:
+        Rotated tensor of shape [..., D] where the first half is -x[..., D/2:]
+        and second half is x[..., :D/2].
     """
     x1, x2 = x.chunk(2, dim=-1)
     return torch.cat([-x2, x1], dim=-1)
@@ -86,6 +104,9 @@ def apply_rope(
       k: Key tensor of shape [B, H, S, D].
       cos: Cosine cache of shape [1, 1, max(L,S), rope_dim], rope_dim <= D.
       sin: Sine cache of shape [1, 1, max(L,S), rope_dim].
+
+    Returns:
+      Tuple of (rotated_q, rotated_k) with shapes [B, H, L, D] and [B, H, S, D].
     """
     rope_dim = cos.size(-1)
     q1, q2 = q[..., :rope_dim], q[..., rope_dim:]

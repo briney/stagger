@@ -8,7 +8,11 @@ from stagger.utils.codebook import load_codebook
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig):
-    """Hydra entry that builds the model and runs a tiny forward pass."""
+    """Build the model and run a tiny forward pass for smoke testing.
+
+    Args:
+        cfg: Hydra configuration dictionary.
+    """
     print(OmegaConf.to_yaml(cfg))
 
     # Load codebook from config (preset, path, or fallback to random)

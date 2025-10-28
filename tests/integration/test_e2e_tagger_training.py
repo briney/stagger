@@ -6,19 +6,47 @@ from tests.utils.synthetic import make_collate_fn, random_protein_sequence
 
 
 class SeqDataset(Dataset):
+    """Simple dataset of random protein sequences."""
+
     def __init__(self, n: int, min_len: int = 96, max_len: int = 128):
+        """Initialize dataset with random sequences.
+
+        Args:
+            n: Number of sequences.
+            min_len: Minimum sequence length. Defaults to 96.
+            max_len: Maximum sequence length. Defaults to 128.
+        """
         self.data = [random_protein_sequence(min_len, max_len) for _ in range(n)]
 
     def __len__(self) -> int:
+        """Return dataset size."""
         return len(self.data)
 
     def __getitem__(self, idx: int) -> str:
+        """Get a sequence from the dataset.
+
+        Args:
+            idx: Sequence index.
+
+        Returns:
+            Protein sequence string.
+        """
         return self.data[idx]
 
 
 def build_model(
     tiny_model_hparams, codebook_tensor, device: torch.device
 ) -> TaggerModel:
+    """Build a tagger model with test hyperparameters.
+
+    Args:
+        tiny_model_hparams: Model hyperparameters dictionary.
+        codebook_tensor: Codebook tensor.
+        device: Device to place model on.
+
+    Returns:
+        TaggerModel instance on specified device.
+    """
     model = TaggerModel(
         vocab_size=tiny_model_hparams["vocab_size"],
         pad_id=tiny_model_hparams["pad_id"],
@@ -43,6 +71,7 @@ def build_model(
 def test_model_instantiation_and_forward(
     tokenizer, tiny_model_hparams, codebook_tensor, ignore_index, device
 ):
+    """Test model instantiation and forward pass."""
     model = build_model(tiny_model_hparams, codebook_tensor, device)
 
     ds = SeqDataset(n=2)
@@ -62,6 +91,7 @@ def test_model_instantiation_and_forward(
 def test_end_to_end_single_optimizer_step(
     tokenizer, tiny_model_hparams, codebook_tensor, ignore_index, device
 ):
+    """Test end-to-end training with a single optimizer step."""
     model = build_model(tiny_model_hparams, codebook_tensor, device)
     opt = torch.optim.AdamW(model.parameters(), lr=1e-3)
 

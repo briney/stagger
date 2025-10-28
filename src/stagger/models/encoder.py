@@ -20,6 +20,19 @@ class Encoder(nn.Module):
         ffn_mult: float = 4.0,
         norm_type: str = "layernorm",
     ):
+        """Initialize encoder stack.
+
+        Args:
+            d_model: Model dimension.
+            n_heads: Number of attention heads.
+            n_layers: Number of encoder layers.
+            dropout: Dropout probability for residual connections.
+            attn_dropout: Dropout probability for attention outputs.
+            rope_base: RoPE base frequency.
+            rope_dim: RoPE dimensionality (must be even). If None, uses head_dim.
+            ffn_mult: Feedforward multiplier (hidden_dim = d_model * ffn_mult).
+            norm_type: Normalization type ("layernorm" currently supported).
+        """
         super().__init__()
         self.rope = RotaryEmbedding(base=rope_base, rope_dim=rope_dim)
         self.layers = nn.ModuleList(
@@ -44,6 +57,18 @@ class Encoder(nn.Module):
         key_padding_mask: torch.Tensor | None = None,
         attn_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Forward pass through encoder stack.
+
+        Args:
+            h: Input tensor of shape [B, L, d_model].
+            key_padding_mask: Padding mask of shape [B, L] where True marks
+                padding positions. Defaults to None.
+            attn_mask: Attention mask of shape [B, H, L, S] or [B, 1, L, S].
+                Defaults to None.
+
+        Returns:
+            Output tensor of shape [B, L, d_model].
+        """
         for layer in self.layers:
             h = layer(h, key_padding_mask=key_padding_mask, attn_mask=attn_mask)
         return self.final_norm(h)

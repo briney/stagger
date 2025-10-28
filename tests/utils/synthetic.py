@@ -8,6 +8,15 @@ _AMINO_ALPHABET = list("LAGV SERTIDPKQNFYMHW CXBUOZ.-".replace(" ", ""))
 
 
 def random_protein_sequence(min_len: int = 50, max_len: int = 200) -> str:
+    """Generate a random protein-like sequence.
+
+    Args:
+        min_len: Minimum sequence length. Defaults to 50.
+        max_len: Maximum sequence length. Defaults to 200.
+
+    Returns:
+        Random protein sequence string.
+    """
     length = random.randint(min_len, max_len)
     return "".join(random.choice(_AMINO_ALPHABET) for _ in range(length))
 
@@ -15,6 +24,17 @@ def random_protein_sequence(min_len: int = 50, max_len: int = 200) -> str:
 def build_batch(
     tokenizer, seqs: List[str], codebook_size: int, ignore_index: int
 ) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Build a batch of tokenized sequences with random labels.
+
+    Args:
+        tokenizer: Tokenizer instance.
+        seqs: List of protein sequence strings.
+        codebook_size: Number of codebook entries.
+        ignore_index: Index to use for ignored labels.
+
+    Returns:
+        Tuple of (input_ids, labels) with shapes [B, L] and [B, L].
+    """
     enc = tokenizer(seqs, padding=True, return_tensors="pt")
     input_ids = enc["input_ids"]  # [B, L]
     attn = enc["attention_mask"]  # [B, L]
@@ -43,6 +63,17 @@ def build_batch(
 def make_collate_fn(
     tokenizer, codebook_size: int, ignore_index: int
 ) -> Callable[[List[str]], Tuple[torch.Tensor, torch.Tensor]]:
+    """Create a collate function for tokenizing sequences.
+
+    Args:
+        tokenizer: Tokenizer instance.
+        codebook_size: Number of codebook entries.
+        ignore_index: Index to use for ignored labels.
+
+    Returns:
+        Collate function that takes a list of sequences and returns (tokens, labels).
+    """
+
     def _collate(batch: List[str]) -> Tuple[torch.Tensor, torch.Tensor]:
         return build_batch(tokenizer, batch, codebook_size, ignore_index)
 

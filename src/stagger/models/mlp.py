@@ -10,6 +10,13 @@ class SwiGLU(nn.Module):
     """
 
     def __init__(self, d_model: int, expansion: float, dropout: float):
+        """Initialize SwiGLU feedforward block.
+
+        Args:
+            d_model: Model dimension.
+            expansion: Expansion factor (hidden_dim = d_model * expansion).
+            dropout: Dropout probability.
+        """
         super().__init__()
         hidden = int(d_model * expansion)
         self.w_up = nn.Linear(d_model, hidden, bias=False)
@@ -18,6 +25,14 @@ class SwiGLU(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass through SwiGLU.
+
+        Args:
+            x: Input tensor of shape [B, L, d_model].
+
+        Returns:
+            Output tensor of shape [B, L, d_model].
+        """
         up = self.w_up(x)
         gate = F.silu(self.w_gate(x))
         y = self.w_down(up * gate)

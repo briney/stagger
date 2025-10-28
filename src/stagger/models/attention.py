@@ -15,6 +15,14 @@ class MHAWithRoPE(nn.Module):
     def __init__(
         self, d_model: int, n_heads: int, dropout: float, rope: RotaryEmbedding
     ):
+        """Initialize multi-head attention with RoPE.
+
+        Args:
+            d_model: Model dimension (must be divisible by n_heads).
+            n_heads: Number of attention heads.
+            dropout: Dropout probability for attention outputs.
+            rope: Rotary positional embedding instance.
+        """
         super().__init__()
         assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
         self.d_model = d_model
@@ -33,6 +41,19 @@ class MHAWithRoPE(nn.Module):
         key_padding_mask: torch.Tensor | None = None,
         attn_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Forward pass through multi-head attention with RoPE.
+
+        Args:
+            x: Input tensor of shape [B, L, d_model].
+            key_padding_mask: Padding mask of shape [B, L] where True marks
+                padding positions. Defaults to None.
+            attn_mask: Attention mask of shape [B, H, L, S] or [B, 1, L, S].
+                Additive (negative values) or boolean masks are supported.
+                Defaults to None.
+
+        Returns:
+            Output tensor of shape [B, L, d_model].
+        """
         B, L, _ = x.shape
         qkv = self.qkv(x)  # [B, L, 3*d_model]
         q, k, v = qkv.chunk(3, dim=-1)

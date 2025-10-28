@@ -13,11 +13,13 @@ if _SRC not in sys.path:
 
 @pytest.fixture(scope="session")
 def device():
+    """Pytest fixture providing a CPU device for tests."""
     return torch.device("cpu")
 
 
 @pytest.fixture(scope="session")
 def tokenizer():
+    """Pytest fixture providing a Tokenizer instance for tests."""
     # Ensure native deps exist; skip tests cleanly if not available
     pytest.importorskip("transformers")
     pytest.importorskip("tokenizers")
@@ -54,4 +56,5 @@ def tiny_model_hparams(tokenizer, codebook_tensor):
 
 @pytest.fixture(scope="session")
 def ignore_index():
+    """Pytest fixture providing the ignore index for loss computation."""
     return -100

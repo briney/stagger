@@ -7,6 +7,7 @@ from stagger.utils.codebook import load_codebook
 
 
 def test_path_overrides_preset(tmp_path):
+    """Test that custom path overrides preset when loading codebook."""
     # Create a small, known tensor and save it
     custom = torch.arange(12, dtype=torch.float32).reshape(3, 4)
     custom_path = tmp_path / "custom_codebook.pt"
@@ -20,6 +21,7 @@ def test_path_overrides_preset(tmp_path):
 
 
 def test_preset_lite_loads():
+    """Test that the lite preset codebook loads successfully."""
     # Ensure we can load the lite preset from package resources
     loaded = load_codebook(preset="lite")
     assert loaded.dim() == 2

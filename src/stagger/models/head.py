@@ -19,6 +19,17 @@ class CodebookClassifier(nn.Module):
         bias_from_code_norm: bool = True,
         projector_dim: int | None = None,
     ):
+        """Initialize codebook classifier.
+
+        Args:
+            d_in: Input feature dimension.
+            codebook: Codebook tensor of shape [C, d_code].
+            use_cosine: If True, use cosine similarity; else use distance-based logits.
+            learnable_temperature: If True, use learnable temperature scaling.
+            bias_from_code_norm: If True, precompute -||e||^2 bias term for
+                distance-based logits.
+            projector_dim: Optional projector dimension. If None, uses d_code.
+        """
         super().__init__()
         assert codebook.dim() == 2, "codebook must be [C, d_code]"
         C, d_code = codebook.shape
@@ -54,6 +65,14 @@ class CodebookClassifier(nn.Module):
             self.register_buffer("code_bias", torch.zeros(C), persistent=True)
 
     def forward(self, h: torch.Tensor) -> torch.Tensor:
+        """Forward pass through classifier.
+
+        Args:
+            h: Input tensor of shape [B, L, d_in].
+
+        Returns:
+            Logits tensor of shape [B, L, C].
+        """
         B, L, _ = h.shape
         h = self.ln(self.project(h))
         h = self.to_code(h)  # [B, L, d_code]

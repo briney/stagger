@@ -18,6 +18,17 @@ class PreLNEncoderBlock(nn.Module):
         norm_type: str = "layernorm",
         ffn_mult: float = 4.0,
     ):
+        """Initialize Pre-LN encoder block.
+
+        Args:
+            d_model: Model dimension.
+            n_heads: Number of attention heads.
+            attn_dropout: Dropout probability for attention outputs.
+            resid_dropout: Dropout probability for residual connections.
+            rope: Rotary positional embedding instance.
+            norm_type: Normalization type ("layernorm" currently supported).
+            ffn_mult: Feedforward multiplier (hidden_dim = d_model * ffn_mult).
+        """
         super().__init__()
         Norm = nn.LayerNorm  # RMSNorm optional later
         if norm_type != "layernorm":
@@ -40,6 +51,18 @@ class PreLNEncoderBlock(nn.Module):
         key_padding_mask: torch.Tensor | None = None,
         attn_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Forward pass through encoder block.
+
+        Args:
+            x: Input tensor of shape [B, L, d_model].
+            key_padding_mask: Padding mask of shape [B, L] where True marks
+                padding positions. Defaults to None.
+            attn_mask: Attention mask of shape [B, H, L, S] or [B, 1, L, S].
+                Defaults to None.
+
+        Returns:
+            Output tensor of shape [B, L, d_model].
+        """
         h = self.norm1(x)
         h = self.attn(h, key_padding_mask=key_padding_mask, attn_mask=attn_mask)
         x = x + self.drop1(h)

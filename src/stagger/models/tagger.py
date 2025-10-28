@@ -26,6 +26,22 @@ class TaggerModel(nn.Module):
         classifier_kwargs: dict[str, Any] | None = None,
         norm_type: str = "layernorm",
     ):
+        """Initialize tagger model.
+
+        Args:
+            vocab_size: Vocabulary size for input tokens.
+            pad_id: Padding token ID.
+            d_model: Model dimension.
+            n_heads: Number of attention heads.
+            n_layers: Number of encoder layers.
+            ffn_mult: Feedforward multiplier (hidden_dim = d_model * ffn_mult).
+            dropout: Dropout probability for residual connections.
+            attn_dropout: Dropout probability for attention outputs.
+            rope_base: RoPE base frequency.
+            codebook: Codebook tensor of shape [C, d_code].
+            classifier_kwargs: Optional keyword arguments for classifier.
+            norm_type: Normalization type ("layernorm" currently supported).
+        """
         super().__init__()
         self.pad_id = pad_id
         self.codebook_size = codebook.shape[0]
@@ -56,6 +72,21 @@ class TaggerModel(nn.Module):
         labels: torch.Tensor | None = None,
         ignore_index: int = -100,
     ):
+        """Forward pass through tagger model.
+
+        Args:
+            tokens: Input token IDs of shape [B, L].
+            key_padding_mask: Padding mask of shape [B, L] where True marks
+                padding positions. If None, inferred from pad_id. Defaults to None.
+            labels: Target labels of shape [B, L]. Use ignore_index for
+                ignored positions. Defaults to None.
+            ignore_index: Index to ignore in loss computation. Defaults to -100.
+
+        Returns:
+            Dictionary containing:
+                - logits: Output logits of shape [B, L, C].
+                - loss: Cross-entropy loss if labels provided, else None.
+        """
         # Embedding
         h = self.embed(tokens)  # [B, L, d_model]
 
