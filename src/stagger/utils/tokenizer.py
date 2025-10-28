@@ -60,7 +60,6 @@ class Tokenizer(PreTrainedTokenizerFast):
         unk_token: str = "<unk>",
         pad_token: str = "<pad>",
         mask_token: str = "<mask>",
-        codebook_size: int = 4096,
         **kwargs,
     ):
         # load pretrained tokenizer (used by AutoTokenizer)

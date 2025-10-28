@@ -28,6 +28,7 @@ class TaggerModel(nn.Module):
     ):
         super().__init__()
         self.pad_id = pad_id
+        self.codebook_size = codebook.shape[0]
         self.embed = nn.Embedding(vocab_size, d_model, padding_idx=pad_id)
         nn.init.normal_(self.embed.weight, mean=0.0, std=0.02)
 

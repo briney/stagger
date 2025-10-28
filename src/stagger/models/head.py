@@ -27,15 +27,15 @@ class CodebookClassifier(nn.Module):
         self.use_cosine = use_cosine
         self.bias_from_code_norm = bias_from_code_norm and (not use_cosine)
 
-        # Register codebook as a non-trainable buffer
+        # register the codebook as a non-trainable buffer
         self.register_buffer("E", codebook.detach(), persistent=True)
 
-        # Projector to code space if needed
+        # projector to codebook space if needed
         p_out = projector_dim or d_code
         self.project = nn.Linear(d_in, p_out, bias=False)
         self.ln = nn.LayerNorm(p_out)
 
-        # When projector_dim != d_code, add a final mapper to d_code
+        # when projector_dim != d_code, add a final mapper to d_code
         self.to_code = (
             nn.Identity() if p_out == d_code else nn.Linear(p_out, d_code, bias=False)
         )
@@ -45,7 +45,7 @@ class CodebookClassifier(nn.Module):
             nn.Parameter(torch.tensor(1.0)) if learnable_temperature else None
         )
 
-        # Precompute -||e||^2 bias if using distance head
+        # precompute -||e||^2 bias if using distance head (if bias_from_code_norm is True)
         if self.bias_from_code_norm:
             with torch.no_grad():
                 bias = -(self.E**2).sum(dim=1)  # [C]
@@ -59,14 +59,14 @@ class CodebookClassifier(nn.Module):
         h = self.to_code(h)  # [B, L, d_code]
 
         if self.use_cosine:
-            # Normalize, cosine similarity scaled by inv_tau (if provided)
+            # normalize, cosine similarity scaled by inv_tau (if provided)
             h_norm = F.normalize(h, dim=-1)
             e_norm = F.normalize(self.E, dim=-1)
             logits = torch.einsum("bld,cd->blc", h_norm, e_norm)  # [B, L, C]
             scale = self.inv_tau if self.inv_tau is not None else 1.0
             logits = scale * logits
         else:
-            # Distance head: 2 h·e - ||e||^2
+            # distance head: 2 h·e - ||e||^2
             logits = 2.0 * torch.einsum("bld,cd->blc", h, self.E)  # [B, L, C]
             if self.bias_from_code_norm:
                 logits = logits + self.code_bias  # broadcast [C] -> [B,L,C]

@@ -27,7 +27,17 @@ def tokenizer():
 
 
 @pytest.fixture(scope="session")
-def tiny_model_hparams(tokenizer):
+def codebook_tensor():
+    """Create a codebook tensor for testing."""
+    C, d_model = 64, 64
+    with torch.no_grad():
+        return torch.randn(C, d_model) * 0.02
+
+
+@pytest.fixture(scope="session")
+def tiny_model_hparams(tokenizer, codebook_tensor):
+    """Create model hyperparameters, inferring codebook_size from codebook_tensor."""
+    codebook_size = codebook_tensor.shape[0]
     return dict(
         d_model=64,
         n_heads=4,
@@ -38,15 +48,8 @@ def tiny_model_hparams(tokenizer):
         rope_base=10000,
         vocab_size=tokenizer.vocab_size,
         pad_id=tokenizer.pad_token_id,
-        codebook_size=64,
+        codebook_size=codebook_size,
     )
-
-
-@pytest.fixture(scope="session")
-def codebook_tensor(tiny_model_hparams):
-    C, d_model = tiny_model_hparams["codebook_size"], tiny_model_hparams["d_model"]
-    with torch.no_grad():
-        return torch.randn(C, d_model) * 0.02
 
 
 @pytest.fixture(scope="session")

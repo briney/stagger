@@ -3,6 +3,7 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 
 from stagger.models.tagger import TaggerModel
+from stagger.utils.codebook import load_codebook
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
@@ -10,11 +11,14 @@ def main(cfg: DictConfig):
     """Hydra entry that builds the model and runs a tiny forward pass."""
     print(OmegaConf.to_yaml(cfg))
 
-    # Load or synthesize a codebook for a quick smoke test
-    C = cfg.model.codebook_size
-    d_model = cfg.model.d_model
-    # For a real run, load the actual VQ codebook tensor [C, d_code]
-    codebook = torch.randn(C, d_model) * 0.02
+    # Load codebook from config (preset, path, or fallback to random)
+    codebook = load_codebook(
+        preset=cfg.model.codebook.get("preset"),
+        path=cfg.model.codebook.get("path"),
+    )
+
+    # Infer codebook size from the loaded tensor
+    codebook_size = codebook.shape[0]
 
     model = TaggerModel(
         vocab_size=cfg.model.vocab_size,
@@ -44,7 +48,7 @@ def main(cfg: DictConfig):
     B, L = 2, 16
     tokens = torch.randint(low=1, high=cfg.model.vocab_size, size=(B, L))
     tokens[:, -2:] = cfg.model.pad_id
-    labels = torch.randint(low=0, high=cfg.model.codebook_size, size=(B, L))
+    labels = torch.randint(low=0, high=codebook_size, size=(B, L))
     labels[:, -2:] = (
         cfg.model.classifier.ignore_index
         if "ignore_index" in cfg.model.classifier

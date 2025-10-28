@@ -4,7 +4,6 @@ n_heads: 12
 n_layers: 12
 ffn_mult: 4.0           # expansion factor for SwiGLU
 vocab_size: 32          # input AA vocab, e.g., 20 + pad/unk
-codebook_size: 4096     # number of structure tokens/classes
 pad_id: 1
 
 # rotary embeddings
@@ -25,16 +24,18 @@ classifier:
 # regularization
 dropout: 0.1
 attn_dropout: 0.0
-norm: "layernorm"                # or "rmsnorm" later
+norm: "layernorm"                # might add "rmsnorm" later
 
 # initialization
 init:
   std: 0.02
 
-# (optional) external codebook file path (torch .pt tensor, [C, d_code])
-# by default, uses the pretrained GCP-VQVAE base model codebook
+# (optional) codebook configuration
+# by default, uses built-in preset "base"
+# to use a custom file, set 'path' which overrides preset
 codebook:
-  path: null
+  preset: "base"                 # one of: "base", "lite" (default: "base")
+  path: null                     # custom codebook file path (overrides preset when set)
   trainable: false               # keep frozen to preserve decoder semantics
 
 

@@ -9,6 +9,11 @@ This directory contains tests for the Stagger project, organized for fast, CPU-o
   - Scope: Uses the real `stagger.utils.tokenizer.Tokenizer`, actual `TaggerModel`, and a tiny synthetic codebook. Synthetic protein-like sequences (length ~96–128) are tokenized; labels are generated per-token except BOS/EOS/PAD positions which are ignored.
   - Pass criteria: A forward pass returns logits of shape `[B, L, C]` and a finite loss; two short optimizer steps complete and change at least one trainable parameter value.
 
+- Package data (`integration/test_package_data.py`)
+  - Purpose: Verify that configs and checkpoint files are properly packaged and accessible after installation.
+  - Scope: Checks that config files and built-in codebook checkpoint files (`base.pt`, `lite.pt`) are included in the installed package and can be accessed via `importlib.resources`.
+  - Pass criteria: All expected config and checkpoint files exist in the installed package.
+
 ## Conventions
 
 - Tests are CPU-only to ensure CI reliability and speed.
