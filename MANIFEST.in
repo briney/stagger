@@ -1,2 +1,2 @@
-recursive-include src/stagger/configs *
-recursive-include src/stagger/checkpoints *
+recursive-include src/stok/configs *
+recursive-include src/stok/checkpoints *

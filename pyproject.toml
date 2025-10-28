@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "stagger"
+name = "stok"
 version = "0.1.1"
 description = "Encoder-only protein tagger (SDPA + RoPE + SwiGLU)"
 readme = "README.md"
@@ -22,12 +22,12 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["stagger*"]
+include = ["stok*"]
 exclude = []
 
 
 [tool.setuptools.package-data]
-stagger = [
+stok = [
   "configs/**",
   "checkpoints/**",
 ]

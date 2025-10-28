@@ -23,7 +23,7 @@ def tokenizer():
     # Ensure native deps exist; skip tests cleanly if not available
     pytest.importorskip("transformers")
     pytest.importorskip("tokenizers")
-    from stagger.utils.tokenizer import Tokenizer as _Tokenizer
+    from stok.utils.tokenizer import Tokenizer as _Tokenizer
 
     return _Tokenizer()
 

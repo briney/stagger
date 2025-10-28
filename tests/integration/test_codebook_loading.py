@@ -3,7 +3,7 @@ from pathlib import Path
 
 import torch
 
-from stagger.utils.codebook import load_codebook
+from stok.utils.codebook import load_codebook
 
 
 def test_path_overrides_preset(tmp_path):

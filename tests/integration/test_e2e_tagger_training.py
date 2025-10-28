@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from stagger.models.tagger import TaggerModel
+from stok.models.tagger import TaggerModel
 from tests.utils.synthetic import make_collate_fn, random_protein_sequence
 
 

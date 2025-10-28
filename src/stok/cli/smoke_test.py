@@ -4,8 +4,8 @@ import torch
 from hydra import compose, initialize
 from omegaconf import DictConfig, OmegaConf
 
-from stagger.models.tagger import TaggerModel
-from stagger.utils.codebook import load_codebook
+from stok.models.tagger import TaggerModel
+from stok.utils.codebook import load_codebook
 
 
 def main(cfg: DictConfig):

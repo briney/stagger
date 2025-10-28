@@ -34,7 +34,7 @@ def load_codebook(
     # otherwise, use preset (default to "base")
     effective_preset = preset or "base"
     codebook_file = f"{effective_preset}.pt"
-    pkg_path = r.files("stagger") / "checkpoints" / "codebook" / codebook_file
+    pkg_path = r.files("stok") / "checkpoints" / "codebook" / codebook_file
     if not pkg_path.exists():
         raise FileNotFoundError(f"Codebook file not found: {pkg_path.as_posix()}")
     with r.as_file(pkg_path) as path_obj:
