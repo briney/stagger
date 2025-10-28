@@ -1,0 +1,2 @@
+recursive-include src/stagger/configs *
+recursive-include src/stagger/checkpoints *

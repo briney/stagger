@@ -11,7 +11,7 @@ python -m pip install -e .
 ## Dev smoke test
 
 ```bash
-python -m stagger.cli.build_model +model.d_model=512 +model.n_layers=6
+python -m stagger.cli.smoke_test model.d_model=512 model.n_heads=8 model.n_layers=6
 ```
 
 This prints the config, model parameter count, and runs a tiny forward pass.

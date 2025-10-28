@@ -54,7 +54,7 @@ def main(cfg: DictConfig):
     out = model(
         tokens=tokens, labels=labels, ignore_index=cfg.model.classifier.ignore_index
     )
-    print("logits:", out["logits"].shape, "loss:", float(out["loss"]))
+    print("logits:", out["logits"].shape, "loss:", float(out["loss"].item()))
     print("OK")
 
 
