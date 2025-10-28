@@ -3,9 +3,9 @@ d_model: 768
 n_heads: 12
 n_layers: 12
 ffn_mult: 4.0       # expansion factor for SwiGLU
-vocab_size: 21      # input AA vocab, e.g., 20 + pad/unk
-codebook_size: 512  # number of structure tokens/classes
-pad_id: 0
+vocab_size: 32      # input AA vocab, e.g., 20 + pad/unk
+codebook_size: 4096  # number of structure tokens/classes
+pad_id: 1
 
 # rotary embeddings
 rope:
