@@ -2,8 +2,8 @@ from typing import Any
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
+from ..utils.losses import token_ce_loss
 from .encoder import Encoder
 from .head import CodebookClassifier
 
@@ -87,27 +87,28 @@ class TaggerModel(nn.Module):
                 - logits: Output logits of shape [B, L, C].
                 - loss: Cross-entropy loss if labels provided, else None.
         """
-        # Embedding
+        # embedding
         h = self.embed(tokens)  # [B, L, d_model]
 
-        # If mask not provided, build from pad_id
+        # if mask not provided, build from pad_id
         if key_padding_mask is None:
             key_padding_mask = tokens == self.pad_id  # [B, L], True = pad
 
-        # Encode
+        # encode
         h = self.encoder(
             h, key_padding_mask=key_padding_mask, attn_mask=None
         )  # [B, L, d_model]
 
-        # Classify
+        # classify
         logits = self.classifier(h)  # [B, L, C]
 
         loss = None
         if labels is not None:
-            # Flatten for CE; ignore_index for missing/unmodeled residues
-            loss = F.cross_entropy(
-                logits.view(-1, logits.size(-1)),
-                labels.view(-1),
+            classification_loss = token_ce_loss(
+                logits=logits,
+                labels=labels,
                 ignore_index=ignore_index,
             )
+            loss = classification_loss
+
         return {"logits": logits, "loss": loss}

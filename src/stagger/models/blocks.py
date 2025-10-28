@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
 
-from .attention import MHAWithRoPE
+from .attention import MultiheadAttention
 from .mlp import SwiGLU
 
 
-class PreLNEncoderBlock(nn.Module):
-    """Pre-LN Transformer encoder block (MHA + SwiGLU)."""
+class EncoderBlock(nn.Module):
+    """Transformer encoder block (pre-layer norm + MHA + SwiGLU)."""
 
     def __init__(
         self,
@@ -36,7 +36,7 @@ class PreLNEncoderBlock(nn.Module):
             Norm = nn.LayerNorm
 
         self.norm1 = Norm(d_model)
-        self.attn = MHAWithRoPE(
+        self.attn = MultiheadAttention(
             d_model=d_model, n_heads=n_heads, dropout=attn_dropout, rope=rope
         )
         self.drop1 = nn.Dropout(resid_dropout)

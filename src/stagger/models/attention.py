@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from .rope import RotaryEmbedding, apply_rope
 
 
-class MHAWithRoPE(nn.Module):
+class MultiheadAttention(nn.Module):
     """Multi-head self-attention using PyTorch SDPA with RoPE.
 
     Uses `scaled_dot_product_attention` to leverage backend optimizations

@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
 
-from .blocks import PreLNEncoderBlock
+from .blocks import EncoderBlock
 from .rope import RotaryEmbedding
 
 
 class Encoder(nn.Module):
-    """Stack of Pre-LN encoder blocks with shared RoPE."""
+    """Stack of encoder blocks with pre-layer norm and shared RoPE."""
 
     def __init__(
         self,
@@ -37,7 +37,7 @@ class Encoder(nn.Module):
         self.rope = RotaryEmbedding(base=rope_base, rope_dim=rope_dim)
         self.layers = nn.ModuleList(
             [
-                PreLNEncoderBlock(
+                EncoderBlock(
                     d_model=d_model,
                     n_heads=n_heads,
                     attn_dropout=attn_dropout,

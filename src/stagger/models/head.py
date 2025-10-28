@@ -7,7 +7,7 @@ class CodebookClassifier(nn.Module):
     """Per-residue classifier tied to a (frozen) VQ codebook.
 
     Supports distance-based logits (mirrors Euclidean VQ) or cosine logits.
-    A small linear projector maps encoder features to code space if needed.
+    A small linear projector maps encoder features to code space.
     """
 
     def __init__(
@@ -41,17 +41,17 @@ class CodebookClassifier(nn.Module):
         # register the codebook as a non-trainable buffer
         self.register_buffer("E", codebook.detach(), persistent=True)
 
-        # projector to codebook space if needed
+        # project to codebook space
         p_out = projector_dim or d_code
         self.project = nn.Linear(d_in, p_out, bias=False)
         self.ln = nn.LayerNorm(p_out)
 
-        # when projector_dim != d_code, add a final mapper to d_code
+        # when projector_dim != d_code, add a final projection to d_code
         self.to_code = (
             nn.Identity() if p_out == d_code else nn.Linear(p_out, d_code, bias=False)
         )
 
-        # Temperature/scale
+        # temperature/scale
         self.inv_tau = (
             nn.Parameter(torch.tensor(1.0)) if learnable_temperature else None
         )
@@ -73,7 +73,7 @@ class CodebookClassifier(nn.Module):
         Returns:
             Logits tensor of shape [B, L, C].
         """
-        B, L, _ = h.shape
+        # B, L, _ = h.shape
         h = self.ln(self.project(h))
         h = self.to_code(h)  # [B, L, d_code]
 
