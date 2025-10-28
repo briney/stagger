@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
-from models.gcpnet.layers.structure_proj import Dim6RotStructureHead
 from x_transformers import ContinuousTransformerWrapper, Encoder
+
+from .head import Dim6RotStructureHead
 
 __all__ = [
     "GeometricDecoder",
@@ -25,7 +26,7 @@ class GeometricDecoder(nn.Module):
         self.decoder_output_scaling_factor = 1.0
 
         # input projection (from codebook space to decoder space)
-        self.project_in = nn.Linear(d_code, d_model, bias=False)
+        self.projector_in = nn.Linear(d_code, d_model, bias=False)
 
         # decoder stack
         self.decoder_stack = ContinuousTransformerWrapper(
@@ -51,7 +52,7 @@ class GeometricDecoder(nn.Module):
         )
 
         # output projection
-        self.project_out = Dim6RotStructureHead(
+        self.affine_output_projection = Dim6RotStructureHead(
             d_model,
             trans_scale_factor=1.0,
             predict_torsion_angles=False,
@@ -64,20 +65,13 @@ class GeometricDecoder(nn.Module):
         *,
         true_lengths: torch.Tensor | None = None,
     ):
-        x = self.project_in(structure_tokens)
+        x = self.projector_in(structure_tokens)
 
         decoder_mask_bool = mask.to(torch.bool)
         x = self.decoder_stack(x, mask=decoder_mask_bool)
 
-        bb_pred = self.project_out(
+        bb_pred = self.affine_output_projection(
             x, affine=None, affine_mask=torch.zeros_like(mask), preds_only=True
         )
 
-        dist_loss_logits = None
-        dir_loss_logits = None
-
-        return (
-            bb_pred.flatten(-2) * self.decoder_output_scaling_factor,
-            dir_loss_logits,
-            dist_loss_logits,
-        )
+        return bb_pred.flatten(-2) * self.decoder_output_scaling_factor
