@@ -1,12 +1,13 @@
-import hydra
+import sys
+
 import torch
+from hydra import compose, initialize
 from omegaconf import DictConfig, OmegaConf
 
 from stagger.models.tagger import TaggerModel
 from stagger.utils.codebook import load_codebook
 
 
-@hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig):
     """Build the model and run a tiny forward pass for smoke testing.
 
@@ -67,4 +68,7 @@ def main(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-    main()
+    overrides = sys.argv[1:]
+    with initialize(version_base=None, config_path="../configs"):
+        cfg = compose(config_name="config", overrides=overrides)
+        main(cfg)
