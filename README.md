@@ -10,7 +10,7 @@ pip install stok
 
 ## smoke test
 
-The following command will print the config, model parameter count, and run a tiny forward pass:
+The following `smoke test`command will print the config, model parameter count, and run a tiny forward pass:
 
 ```bash
 python -m stok.cli.smoke_test
@@ -21,8 +21,6 @@ Config overrides can be used to run a smoke test using a different model archite
 ```bash
 python -m stok.cli.smoke_test model.encoder.d_model=512 model.encoder.n_heads=8 model.encoder.n_layers=6
 ```
-
-This prints the config, model parameter count, and runs a tiny forward pass.
 
 ## codebook presets and custom files
 
