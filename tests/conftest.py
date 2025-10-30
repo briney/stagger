@@ -47,7 +47,7 @@ def tiny_model_hparams(tokenizer, codebook_tensor):
         ffn_mult=2.0,
         dropout=0.0,
         attn_dropout=0.0,
-        rope_base=10000,
+        # rope_base=10000,
         vocab_size=tokenizer.vocab_size,
         pad_id=tokenizer.pad_token_id,
         codebook_size=codebook_size,
