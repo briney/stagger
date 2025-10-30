@@ -91,8 +91,10 @@ class ProteinFeaturiser(nn.Module):
             Batch | ProteinBatch: The same object with features populated.
         """
         # scalar node features
+        batch.x = self.positional_encoding(batch.seq_pos)
         scalar_features = compute_scalar_node_features(batch, self.scalar_node_features)
-        batch.x = torch.nan_to_num(scalar_features, nan=0.0, posinf=0.0, neginf=0.0)
+        batch.x = torch.cat([batch.x, scalar_features], dim=-1)
+        batch.x = torch.nan_to_num(batch.x, nan=0.0, posinf=0.0, neginf=0.0)
 
         # transform representation
         batch.pos = batch.coords[:, 1, :]
