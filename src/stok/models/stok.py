@@ -1,5 +1,3 @@
-from typing import Any
-
 import torch
 import torch.nn as nn
 
@@ -8,8 +6,8 @@ from .encoder import Encoder
 from .head import CodebookClassifier
 
 
-class TaggerModel(nn.Module):
-    """Encoder-only tagger that predicts a structure token per residue."""
+class STokModel(nn.Module):
+    """Encoder-only STōk model that predicts a structure token per residue."""
 
     def __init__(
         self,
@@ -22,10 +20,10 @@ class TaggerModel(nn.Module):
         dropout: float,
         attn_dropout: float,
         codebook: torch.Tensor,
-        classifier_kwargs: dict[str, Any] | None = None,
+        classifier_kwargs: dict | None = None,
         norm_type: str = "layernorm",
     ):
-        """Initialize tagger model.
+        """Initialize STOK model.
 
         Args:
             vocab_size: Vocabulary size for input tokens.
@@ -69,7 +67,7 @@ class TaggerModel(nn.Module):
         labels: torch.Tensor | None = None,
         ignore_index: int = -100,
     ):
-        """Forward pass through tagger model.
+        """Forward pass through STOK model.
 
         Args:
             tokens: Input token IDs of shape [B, L].

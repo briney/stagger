@@ -1,4 +1,4 @@
-# stōk: structure tokenizer
+# STōk: structure tokenizer
 
 Encoder-only protein structure tokenizer using SDPA attention with RoPE and a SwiGLU MLP, managed via Hydra. The classifier can be tied to a frozen VQ codebook for per-residue structure tokens.
 

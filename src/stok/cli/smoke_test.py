@@ -4,7 +4,7 @@ import torch
 from hydra import compose, initialize
 from omegaconf import DictConfig, OmegaConf
 
-from stok.models.tagger import TaggerModel
+from stok.models.stok import STokModel
 from stok.utils.codebook import load_codebook
 
 
@@ -25,7 +25,7 @@ def main(cfg: DictConfig):
     # Infer codebook size from the loaded tensor
     codebook_size = codebook.shape[0]
 
-    model = TaggerModel(
+    model = STokModel(
         vocab_size=cfg.model.encoder.vocab_size,
         pad_id=cfg.model.encoder.pad_id,
         d_model=cfg.model.encoder.d_model,

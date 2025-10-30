@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from stok.models.tagger import TaggerModel
+from stok.models.stok import STokModel
 from tests.utils.synthetic import make_collate_fn, random_protein_sequence
 
 
@@ -34,10 +34,8 @@ class SeqDataset(Dataset):
         return self.data[idx]
 
 
-def build_model(
-    tiny_model_hparams, codebook_tensor, device: torch.device
-) -> TaggerModel:
-    """Build a tagger model with test hyperparameters.
+def build_model(tiny_model_hparams, codebook_tensor, device: torch.device) -> STokModel:
+    """Build a STOK model with test hyperparameters.
 
     Args:
         tiny_model_hparams: Model hyperparameters dictionary.
@@ -45,9 +43,9 @@ def build_model(
         device: Device to place model on.
 
     Returns:
-        TaggerModel instance on specified device.
+        StokModel instance on specified device.
     """
-    model = TaggerModel(
+    model = STokModel(
         vocab_size=tiny_model_hparams["vocab_size"],
         pad_id=tiny_model_hparams["pad_id"],
         d_model=tiny_model_hparams["d_model"],
@@ -56,7 +54,7 @@ def build_model(
         ffn_mult=tiny_model_hparams["ffn_mult"],
         dropout=tiny_model_hparams["dropout"],
         attn_dropout=tiny_model_hparams["attn_dropout"],
-        rope_base=tiny_model_hparams["rope_base"],
+        # rope_base=tiny_model_hparams["rope_base"],
         codebook=codebook_tensor,
         classifier_kwargs=dict(
             use_cosine=False,
