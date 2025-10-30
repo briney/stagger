@@ -11,9 +11,11 @@ requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [{ name = "Bryan Briney" }]
 dependencies = [
-  "torch>=2.1",
-  "hydra-core>=1.3",
-  "omegaconf>=2.3",
+  "torch",
+  "hydra-core",
+  "omegaconf",
+  "graphein",
+  "torch_geometric",
 ]
 
 [tool.setuptools]
