@@ -9,7 +9,8 @@ from typing import Any
 
 import torch
 import torch.nn as nn
-import torch_scatter
+
+# import torch_scatter
 from graphein.protein.tensor.data import ProteinBatch
 from omegaconf import DictConfig, OmegaConf
 from torch_geometric.data import Batch
@@ -25,6 +26,7 @@ from ..utils.gcp import (
     is_identity,
     localize,
     safe_norm,
+    scatter_reduce,
 )
 
 
@@ -445,7 +447,15 @@ class GCP(nn.Module):
 
         if node_inputs:
             # for node inputs, summarize all edge-wise geometric scalars using an average
-            return torch_scatter.scatter(
+            # return torch_scatter.scatter(
+            #     local_scalar_rep_i,
+            #     # summarize according to source node indices due to the directional nature of GCP's equivariant frames
+            #     row,
+            #     dim=0,
+            #     dim_size=dim_size,
+            #     reduce="mean",
+            # )
+            return scatter_reduce(
                 local_scalar_rep_i,
                 # summarize according to source node indices due to the directional nature of GCP's equivariant frames
                 row,
@@ -751,7 +761,6 @@ class GCPMessagePassing(nn.Module):
         self.self_message = self.conv_cfg.self_message
         self.reduce_function = reduce_function
         self.use_scalar_message_attention = use_scalar_message_attention
-        # self._cugraph_cache: dict[tuple[int, int, int, int], _CuGraphCSCCache] = {}
 
         scalars_in_dim = 2 * self.scalar_input_dim + self.edge_scalar_dim
         vectors_in_dim = 2 * self.vector_input_dim + self.edge_vector_dim
@@ -871,34 +880,6 @@ class GCPMessagePassing(nn.Module):
 
         return ScalarVector(agg_scalar, agg_vector)
 
-    # def _cugraph_cache_key(
-    #     self, row: torch.Tensor, col: torch.Tensor, num_nodes: int
-    # ) -> tuple[int, int, int, int]:
-    #     device = row.device
-    #     device_index = device.index if device.type == "cuda" else -1
-    #     return (
-    #         int(row.data_ptr()),
-    #         int(col.data_ptr()),
-    #         num_nodes,
-    #         device_index,
-    #     )
-
-    # def _get_cugraph_cache(
-    #     self, row: torch.Tensor, col: torch.Tensor, num_nodes: int
-    # ) -> _CuGraphCSCCache:
-    #     if row.numel() == 0:
-    #         return _build_cugraph_cache(row, col, num_nodes)
-
-    #     key = self._cugraph_cache_key(row, col, num_nodes)
-    #     cache = self._cugraph_cache.get(key)
-
-    #     if cache is None or cache.num_edges != row.numel():
-    #         cache = _build_cugraph_cache(row, col, num_nodes)
-    #         # Retain only the most recent CSC graph to bound memory.
-    #         self._cugraph_cache = {key: cache}
-
-    #     return cache
-
     def _sparse_reduce(
         self,
         row: torch.Tensor,
@@ -928,74 +909,6 @@ class GCPMessagePassing(nn.Module):
                 if aggregated_vector.numel():
                     aggregated_vector = aggregated_vector * mask.unsqueeze(-1)
             return aggregated_scalar, aggregated_vector
-
-        # use_cugraph = (
-        #     _HAS_CUGRAPH_OPS
-        #     and scalar_message.is_cuda
-        #     and (vector_message.numel() == 0 or vector_message.is_cuda)
-        # )
-
-        # if use_cugraph:
-        #     cache = self._get_cugraph_cache(row, col, dim_size)
-        #     aggregated_scalar = _CuGraphSimpleE2N.apply(
-        #         scalar_message, row, col, dim_size, cache
-        #     )
-        #     if vector_message.numel():
-        #         vector_flat = vector_message.reshape(num_edges, -1)
-        #         aggregated_vector_flat = _CuGraphSimpleE2N.apply(
-        #             vector_flat, row, col, dim_size, cache
-        #         )
-        #         aggregated_vector = aggregated_vector_flat.view(
-        #             dim_size, vector_message.size(1), vector_message.size(2)
-        #         )
-        #     else:
-        #         aggregated_vector = vector_message.new_zeros(dim_size, 0, 3)
-        # else:
-        #     scalar_dtype = scalar_message.dtype
-        #     autocast_context = (
-        #         (lambda: torch.amp.autocast(device_type="cuda", enabled=False))
-        #         if scalar_message.is_cuda
-        #         else contextlib.nullcontext
-        #     )
-
-        #     counts = torch.bincount(row, minlength=dim_size)
-        #     indptr = torch.zeros(dim_size + 1, device=device, dtype=torch.long)
-        #     indptr[1:] = counts.cumsum(0)
-
-        #     perm = torch.argsort(row)
-        #     scalar_message = scalar_message.index_select(0, perm)
-        #     if vector_message.numel():
-        #         vector_message = vector_message.index_select(0, perm)
-
-        #     with autocast_context():
-        #         scalar_fp32 = scalar_message.float()
-        #         aggregated_scalar_fp32 = torch.segment_reduce(
-        #             scalar_fp32,
-        #             reduce="sum",
-        #             offsets=indptr,
-        #             axis=0,
-        #         )
-
-        #     aggregated_scalar = aggregated_scalar_fp32.to(scalar_dtype)
-
-        #     if vector_message.numel():
-        #         vector_flat = vector_message.reshape(num_edges, -1)
-        #         with autocast_context():
-        #             vector_fp32 = vector_flat.float()
-        #             aggregated_vector_flat_fp32 = torch.segment_reduce(
-        #                 vector_fp32,
-        #                 reduce="sum",
-        #                 offsets=indptr,
-        #                 axis=0,
-        #             )
-        #         aggregated_vector_flat = aggregated_vector_flat_fp32.to(
-        #             vector_message.dtype
-        #         )
-        #         aggregated_vector = aggregated_vector_flat.view(
-        #             dim_size, vector_message.size(1), vector_message.size(2)
-        #         )
-        #     else:
-        #         aggregated_vector = vector_message.new_zeros(dim_size, 0, 3)
 
         scalar_dtype = scalar_message.dtype
         autocast_context = (
@@ -1064,7 +977,7 @@ class GCPInteractions(nn.Module):
     ):
         super().__init__()
 
-        # hyperparameters #
+        # hyperparameters
         if nonlinearities is None:
             nonlinearities = cfg.nonlinearities
         self.pre_norm = layer_cfg.pre_norm
@@ -1074,8 +987,6 @@ class GCPInteractions(nn.Module):
             cfg, "update_positions_with_vector_sum", False
         )
         reduce_function = "sum"
-
-        # PyTorch modules #
 
         # geometry-complete message-passing neural network
         message_function = GCPMessagePassing
@@ -1102,7 +1013,7 @@ class GCPInteractions(nn.Module):
             [GCPDropout(dropout, use_gcp_dropout=layer_cfg.use_gcp_dropout)]
         )
 
-        # build out feedforward (FF) network modules
+        # build out feedforward network modules
         hidden_dims = (
             (node_dims.scalar, node_dims.vector)
             if layer_cfg.num_feedforward_layers == 1
@@ -1174,7 +1085,7 @@ class GCPInteractions(nn.Module):
         else:
             x_vector_update = node_rep_update.vector.squeeze(1)
 
-        # (up/down)weight position updates
+        # (up/down) weight position updates
         x_update = x_vector_update * self.node_positions_weight
 
         return x_update

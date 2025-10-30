@@ -10,7 +10,8 @@ from typing import Callable, Iterable, NewType, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch_scatter
+
+# import torch_scatter
 from graphein.protein.tensor.data import ProteinBatch
 from torch_geometric.data import Batch
 
@@ -299,7 +300,14 @@ def centralize(
     lengths = torch.bincount(batch_index)
     dim_size = lengths.size(0)
     if node_mask is not None:
-        centroid = torch_scatter.scatter(
+        # centroid = torch_scatter.scatter(
+        #     batch[key][node_mask],
+        #     batch_index[node_mask],
+        #     dim=0,
+        #     reduce="mean",
+        #     dim_size=dim_size,
+        # )
+        centroid = scatter_reduce(
             batch[key][node_mask],
             batch_index[node_mask],
             dim=0,
@@ -310,7 +318,10 @@ def centralize(
         centered[node_mask] = batch[key][node_mask] - centroid[batch_index][node_mask]
         return centroid, centered
 
-    centroid = torch_scatter.scatter(
+    # centroid = torch_scatter.scatter(
+    #     batch[key], batch_index, dim=0, reduce="mean", dim_size=dim_size
+    # )
+    centroid = scatter_reduce(
         batch[key], batch_index, dim=0, reduce="mean", dim_size=dim_size
     )
     centered = batch[key] - centroid[batch_index]
@@ -455,7 +466,8 @@ def get_aggregation(aggregation: str) -> Callable:
         index, _, num_graphs = _extract_batch_info(batch_like)
         if num_graphs == 0:
             return x.new_zeros((0, x.size(-1)))
-        return torch_scatter.scatter(x, index, dim=0, dim_size=num_graphs, reduce="sum")
+        # return torch_scatter.scatter(x, index, dim=0, dim_size=num_graphs, reduce="sum")
+        return scatter_reduce(x, index, dim=0, dim_size=num_graphs, reduce="sum")
 
     def pool_mean(x: torch.Tensor, batch_like: Batch | torch.Tensor) -> torch.Tensor:
         sums = pool_sum(x, batch_like)
@@ -471,7 +483,8 @@ def get_aggregation(aggregation: str) -> Callable:
         index, _, num_graphs = _extract_batch_info(batch_like)
         if num_graphs == 0:
             return x.new_zeros((0, x.size(-1)))
-        return torch_scatter.scatter(x, index, dim=0, dim_size=num_graphs, reduce="max")
+        # return torch_scatter.scatter(x, index, dim=0, dim_size=num_graphs, reduce="max")
+        return scatter_reduce(x, index, dim=0, dim_size=num_graphs, reduce="max")
 
     if aggregation == "max":
         return pool_max
@@ -517,3 +530,32 @@ def safe_norm(
     if sqrt:
         norm = torch.sqrt(norm.clamp_min(eps))
     return norm
+
+
+def scatter_reduce(
+    x: torch.Tensor, index: torch.Tensor, dim: int, dim_size: int, reduce: str
+) -> torch.Tensor:
+    """ """
+    # torch.scatter_reduce does not support "max" and "min" reduction, so we use "amax" and "amin" instead
+    if reduce in ["max", "amax"]:
+        reduce = "amax"
+        init_val = float("-inf")
+    elif reduce in ["min", "amin"]:
+        reduce = "amin"
+        init_val = float("inf")
+    elif reduce in ["sum", "mean"]:
+        init_val = float(0)
+    elif reduce == "prod":
+        init_val = float(1)
+    else:
+        raise ValueError(f"Unknown reduction function: {reduce}")
+
+    # build the output tensor
+    out = x.new_full((dim_size, x.size(1)), init_val)
+
+    # match the source shape along dim=0 so that broadcasting works
+    idx = index.unsqueeze(-1).expand_as(x)
+
+    out.scatter_reduce_(dim, idx, x, reduce=reduce, include_self=False)
+    return out
+    # return torch.scatter_reduce(out, dim, idx, x, reduce=reduce, include_self=False)
