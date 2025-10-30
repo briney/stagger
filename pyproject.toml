@@ -16,6 +16,7 @@ dependencies = [
   "omegaconf",
   "graphein",
   "torch_geometric",
+  "torch-scatter",
 ]
 
 [tool.setuptools]
