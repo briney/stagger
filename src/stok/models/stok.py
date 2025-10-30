@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from ..utils.losses import token_ce_loss
+from ..utils.losses import fape_loss, token_ce_loss
 from .encoder import Encoder
 from .head import CodebookClassifier
 
@@ -65,6 +65,8 @@ class STokModel(nn.Module):
         tokens: torch.Tensor,
         key_padding_mask: torch.Tensor | None = None,
         labels: torch.Tensor | None = None,
+        coords: torch.Tensor | None = None,
+        coords_loss_weight: float = 0.1,
         ignore_index: int = -100,
     ):
         """Forward pass through STOK model.
@@ -75,6 +77,9 @@ class STokModel(nn.Module):
                 padding positions. If None, inferred from pad_id. Defaults to None.
             labels: Target labels of shape [B, L]. Use ignore_index for
                 ignored positions. Defaults to None.
+            coords: Coordinates of shape [B, L, 3, 3] for N, CA, C atoms per residue.
+                If None, the structure-based FAPE loss is not computed. Defaults to None.
+            coords_loss_weight: Weight for the structure-based FAPE loss. Defaults to 0.1.
             ignore_index: Index to ignore in loss computation. Defaults to -100.
 
         Returns:
@@ -98,12 +103,37 @@ class STokModel(nn.Module):
         logits = self.classifier(h)  # [B, L, C]
 
         loss = None
+        classification_loss = None
+        structure_loss = None
+
+        # token classification loss
         if labels is not None:
             classification_loss = token_ce_loss(
                 logits=logits,
                 labels=labels,
                 ignore_index=ignore_index,
             )
-            loss = classification_loss
 
-        return {"logits": logits, "loss": loss}
+        # structure-based FAPE loss
+        if coords is not None:
+            structure_loss = fape_loss(
+                pred_coords=coords,
+                true_coords=coords,
+                residue_mask=~key_padding_mask,
+            )
+
+        # combine losses
+        if classification_loss is not None:
+            loss = classification_loss
+        if structure_loss is not None:
+            if loss is None:
+                loss = structure_loss * coords_loss_weight
+            else:
+                loss += structure_loss * coords_loss_weight
+
+        return {
+            "logits": logits,
+            "loss": loss,
+            "classification_loss": classification_loss,
+            "structure_loss": structure_loss,
+        }
