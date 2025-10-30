@@ -18,7 +18,6 @@ from ..utils.gcp import (
     CachedGaussianRBF,
     EncoderOutput,
     ScalarVector,
-    _CuGraphCSCCache,
     centralize,
     decentralize,
     get_activations,

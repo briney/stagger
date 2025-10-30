@@ -5,10 +5,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable, NewType, Tuple
+from typing import Callable, Iterable, NewType, Tuple
 
 import torch
-import torch._dynamo as dynamo
 import torch.nn as nn
 import torch.nn.functional as F
 import torch_scatter
@@ -256,14 +255,14 @@ class CachedGaussianRBF(torch.nn.Module):
         return torch.exp(-(((expanded - centers) / sigma) ** 2))
 
 
-@dataclass
-class _CuGraphCSCCache:
-    perm: torch.Tensor
-    graph: Any
-    num_edges: int
-    num_nodes: int
-    offsets_cp: Any
-    indices_cp: Any
+# @dataclass
+# class _CuGraphCSCCache:
+#     perm: torch.Tensor
+#     graph: Any
+#     num_edges: int
+#     num_nodes: int
+#     offsets_cp: Any
+#     indices_cp: Any
 
 
 def centralize(
