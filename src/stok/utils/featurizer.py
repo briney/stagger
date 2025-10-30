@@ -1,5 +1,6 @@
-# heavily inspired by GCP-VQVAE (https://github.com/mahdip72/vq_encoder_decoder)
-# which was itself heavily inspired by ProteinWorkshop (https://github.com/a-r-j/ProteinWorkshop)
+# this was heavily inspired by GCP-VQVAE (https://github.com/mahdip72/vq_encoder_decoder)
+# which was heavily inspired by ProteinWorkshop (https://github.com/a-r-j/ProteinWorkshop)
+# which re-implemented GCPNet (https://github.com/BioinfoMachineLearning/GCPNet)
 
 import torch
 import torch.nn as nn
