@@ -8,7 +8,7 @@ from stok.models.stok import STokModel
 from stok.utils.codebook import load_codebook
 
 
-def main(cfg: DictConfig):
+def run_smoke_test(cfg: DictConfig):
     """Build the model and run a tiny forward pass for smoke testing.
 
     Args:
@@ -70,4 +70,4 @@ if __name__ == "__main__":
     overrides = sys.argv[1:]
     with initialize(version_base=None, config_path="../configs"):
         cfg = compose(config_name="config", overrides=overrides)
-        main(cfg)
+        run_smoke_test(cfg)
