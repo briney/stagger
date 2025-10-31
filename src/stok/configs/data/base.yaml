@@ -4,3 +4,6 @@ num_workers: 4
 pin_memory: true
 
 
+# file paths for datasets
+train: null   # path to training CSV (pid, protein_sequence, indices)
+eval: null    # path to validation CSV
