@@ -48,3 +48,33 @@ model:
     preset: "base"   # one of: "base", "lite" (default: base)
     path: null       # custom file path; when set, overrides preset
 ```
+
+## training
+
+Single‑GPU (quick/dev):
+
+```bash
+stok train \
+  data.train=/abs/path/to/train.csv \
+  data.eval=/abs/path/to/eval.csv
+```
+
+Multi‑GPU with Accelerate (spawns one process per GPU):
+
+```bash
+accelerate launch -m stok.train \
+  data.train=/abs/path/to/train.csv \
+  data.eval=/abs/path/to/eval.csv
+```
+
+Notes:
+
+- Verify your setup with:
+  ```bash
+  accelerate env
+  ```
+- If your default Accelerate config is not set to 8 processes, you can pass:
+  ```bash
+  accelerate launch --num_processes 8 -m stok.train ...
+  ```
+- DataLoader workers are per process. Tune `data.num_workers` to avoid oversubscription when using many GPUs.

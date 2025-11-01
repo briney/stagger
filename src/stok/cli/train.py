@@ -200,6 +200,15 @@ def run_training(cfg: DictConfig):
     is_main = accelerator.is_main_process if accelerator else True
     printer = accelerator.print if accelerator else print
 
+    # Warn when multiple GPUs are visible but only one process is active
+    if accelerator and is_main:
+        world_size = getattr(accelerator, "num_processes", 1)
+        if world_size == 1 and torch.cuda.device_count() > 1:
+            printer(
+                "Multiple CUDA devices detected but only one process is active. "
+                "Launch multi-GPU with: accelerate launch -m stok.train <overrides>"
+            )
+
     # Load codebook and build model
     codebook = load_codebook(
         preset=cfg.model.codebook.get("preset"),
