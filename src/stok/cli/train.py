@@ -351,14 +351,19 @@ def run_training(cfg: DictConfig):
                 if accelerator:
                     metrics_local = torch.tensor(
                         [eval_loss_sum, eval_acc_sum, eval_batches],
-                        dtype=torch.float64,
+                        dtype=torch.float32,  # float64 not supported on some accelerators (e.g., MPS)
                         device=model.embed.weight.device,
                     )
                     gathered = accelerator.gather_for_metrics(metrics_local)
-                    # gathered is [N, 3]; reduce by sum
-                    eval_loss_sum = float(gathered[:, 0].sum().item())
-                    eval_acc_sum = float(gathered[:, 1].sum().item())
-                    eval_batches = float(gathered[:, 2].sum().item())
+                    # gathered can be shape [3] on single process or [N, 3] on multi
+                    if gathered.dim() == 1:
+                        eval_loss_sum = float(gathered[0].item())
+                        eval_acc_sum = float(gathered[1].item())
+                        eval_batches = float(gathered[2].item())
+                    else:
+                        eval_loss_sum = float(gathered[:, 0].sum().item())
+                        eval_acc_sum = float(gathered[:, 1].sum().item())
+                        eval_batches = float(gathered[:, 2].sum().item())
 
                 eval_loss = eval_loss_sum / max(1.0, eval_batches)
                 eval_acc = eval_acc_sum / max(1.0, eval_batches)
