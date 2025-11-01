@@ -86,10 +86,12 @@ def _tokenize_and_align(
         L = ids.size(0)
         labels = torch.full((L,), ignore_index, dtype=torch.long)
 
-        # positions 1..(1+len(indices)) receive labels, respecting truncation before EOS
-        copy_len = min(len(indices), max(0, L - 2))
+        # Copy only non-negative indices; positions 1..(1+copy_len) receive labels,
+        # respecting truncation before EOS
+        valid_indices = indices[indices >= 0]
+        copy_len = min(int(valid_indices.numel()), max(0, L - 2))
         if copy_len > 0:
-            labels[1 : 1 + copy_len] = indices[:copy_len]
+            labels[1 : 1 + copy_len] = valid_indices[:copy_len]
 
         input_ids.append(ids)
         label_ids.append(labels)

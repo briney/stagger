@@ -17,10 +17,23 @@ class VQIndicesDataset(Dataset):
         row = self.data.iloc[idx]
         pid = row["pid"]
         seq = row["protein_sequence"]
-        indices = [int(i) for i in row["indices"].split()]  #  space-separate string
+        # handle empty/NaN indices cells -> treat as empty list
+        raw = row["indices"]
+        if isinstance(raw, float) and pd.isna(raw):
+            indices = []
+        elif isinstance(raw, str):
+            s = raw.strip()
+            indices = [int(i) for i in s.split()] if s else []
+        else:
+            # fallback: try casting to string then parse; if it fails, empty
+            try:
+                s = str(raw).strip()
+                indices = [int(i) for i in s.split()] if s else []
+            except Exception:
+                indices = []
 
         idx_length = len(indices)
-        pad_length = self.max_length - idx_length
+        pad_length = max(0, self.max_length - idx_length)
 
         # pad indices with -1 and create a mask
         padded_indices = indices + [-1] * pad_length

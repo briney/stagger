@@ -17,9 +17,17 @@ def token_ce_loss(
     Returns:
         Scalar loss tensor.
     """
+    C = int(logits.size(-1))
+    logits_flat = logits.view(-1, C)
+    labels_flat = labels.view(-1)
+    # Treat any label outside [0, C) as ignore_index to avoid device asserts
+    invalid = (labels_flat < 0) | (labels_flat >= C)
+    if invalid.any():
+        labels_flat = labels_flat.clone()
+        labels_flat[invalid] = ignore_index
     return F.cross_entropy(
-        logits.view(-1, logits.size(-1)),
-        labels.view(-1),
+        logits_flat,
+        labels_flat,
         ignore_index=ignore_index,
     )
 
