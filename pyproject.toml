@@ -17,6 +17,15 @@ dependencies = [
   "graphein",
   "torch_geometric",
   "click>=8.1",
+  "wandb",
+  "accelerate",
+  "tokenizers",
+  "numpy",
+  "pandas",
+  "biopython",
+  "transformers",
+  "x-transformers",
+  "typing-extensions; python_version < '3.11'",
 ]
 
 [tool.setuptools]
