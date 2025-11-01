@@ -278,6 +278,12 @@ def run_training(cfg: DictConfig):
     ignore_index = int(cfg.model.classifier.ignore_index)
     grad_clip = float(cfg.train.get("grad_clip_norm", 1.0))
 
+    # Additional training accumulators (over the current log window)
+    running_cls_loss = 0.0
+    running_cls_count = 0
+    running_fape_loss = 0.0
+    running_fape_count = 0
+
     while global_step < max_steps:
         for batch in train_loader:
             if accelerator is None:
@@ -309,29 +315,74 @@ def run_training(cfg: DictConfig):
 
             running_loss += float(loss.detach().item())
 
+            # Accumulate component losses
+            cls_loss_tensor = outputs.get("classification_loss")
+            if cls_loss_tensor is not None:
+                running_cls_loss += float(cls_loss_tensor.detach().item())
+                running_cls_count += 1
+            fape_loss_tensor = outputs.get("structure_loss")
+            if fape_loss_tensor is not None:
+                running_fape_loss += float(fape_loss_tensor.detach().item())
+                running_fape_count += 1
+
             # Logging
             if (global_step + 1) % log_interval == 0 and is_main:
                 with torch.no_grad():
                     acc = _compute_accuracy(outputs["logits"], labels, ignore_index)
                 lr = scheduler.get_last_lr()[0]
-                msg = f"step {global_step+1}/{max_steps} | loss {running_loss/log_interval:.4f} | acc {acc:.4f} | lr {lr:.2e}"
+
+                # Compute window averages
+                avg_total_loss = running_loss / max(1, log_interval)
+                avg_cls_loss = (
+                    running_cls_loss / float(max(1, running_cls_count))
+                    if running_cls_count > 0
+                    else None
+                )
+                avg_fape_loss = (
+                    running_fape_loss / float(max(1, running_fape_count))
+                    if running_fape_count > 0
+                    else None
+                )
+                ppl = math.exp(avg_cls_loss) if avg_cls_loss is not None else None
+
+                # Console message
+                msg = f"step {global_step+1}/{max_steps} | loss {avg_total_loss:.4f} | acc {acc:.4f} | lr {lr:.2e}"
+                if avg_cls_loss is not None:
+                    msg += f" | cls {avg_cls_loss:.4f} | ppl {ppl:.2f}"
+                if avg_fape_loss is not None:
+                    msg += f" | fape {avg_fape_loss:.4f}"
                 printer(msg)
+
+                # W&B payload
                 if wb is not None:
-                    wb.log(
-                        {
-                            "train/loss": running_loss / log_interval,
-                            "train/acc": acc,
-                            "lr": lr,
-                        },
-                        step=global_step + 1,
-                    )
+                    payload: dict[str, float] = {
+                        "train/loss": float(avg_total_loss),
+                        "train/acc": float(acc),
+                        "lr": float(lr),
+                    }
+                    if avg_cls_loss is not None and ppl is not None:
+                        payload["train/cls_loss"] = float(avg_cls_loss)
+                        payload["train/ppl"] = float(ppl)
+                    if avg_fape_loss is not None:
+                        payload["train/fape_loss"] = float(avg_fape_loss)
+                    wb.log(payload, step=global_step + 1)
+
+                # Reset window accumulators
                 running_loss = 0.0
+                running_cls_loss = 0.0
+                running_cls_count = 0
+                running_fape_loss = 0.0
+                running_fape_count = 0
 
             # Eval
             if (global_step + 1) % eval_interval == 0 and eval_loader is not None:
                 eval_loss_sum = 0.0
                 eval_acc_sum = 0.0
                 eval_batches = 0.0
+                eval_cls_loss_sum = 0.0
+                eval_cls_batches = 0.0
+                eval_fape_loss_sum = 0.0
+                eval_fape_batches = 0.0
                 model.eval()
                 with torch.no_grad():
                     for ev in eval_loader:
@@ -345,36 +396,86 @@ def run_training(cfg: DictConfig):
                             out["logits"], elab, ignore_index
                         )
                         eval_batches += 1.0
+
+                        # Accumulate component losses
+                        cls_loss_tensor = out.get("classification_loss")
+                        if cls_loss_tensor is not None:
+                            eval_cls_loss_sum += float(cls_loss_tensor.item())
+                            eval_cls_batches += 1.0
+                        fape_loss_tensor = out.get("structure_loss")
+                        if fape_loss_tensor is not None:
+                            eval_fape_loss_sum += float(fape_loss_tensor.item())
+                            eval_fape_batches += 1.0
                 model.train()
 
                 # Aggregate across processes if using Accelerate
                 if accelerator:
                     metrics_local = torch.tensor(
-                        [eval_loss_sum, eval_acc_sum, eval_batches],
+                        [
+                            eval_loss_sum,
+                            eval_acc_sum,
+                            eval_batches,
+                            eval_cls_loss_sum,
+                            eval_cls_batches,
+                            eval_fape_loss_sum,
+                            eval_fape_batches,
+                        ],
                         dtype=torch.float32,  # float64 not supported on some accelerators (e.g., MPS)
                         device=model.embed.weight.device,
                     )
                     gathered = accelerator.gather_for_metrics(metrics_local)
-                    # gathered can be shape [3] on single process or [N, 3] on multi
+                    # gathered can be shape [7] on single process or [N, 7] on multi
                     if gathered.dim() == 1:
                         eval_loss_sum = float(gathered[0].item())
                         eval_acc_sum = float(gathered[1].item())
                         eval_batches = float(gathered[2].item())
+                        eval_cls_loss_sum = float(gathered[3].item())
+                        eval_cls_batches = float(gathered[4].item())
+                        eval_fape_loss_sum = float(gathered[5].item())
+                        eval_fape_batches = float(gathered[6].item())
                     else:
                         eval_loss_sum = float(gathered[:, 0].sum().item())
                         eval_acc_sum = float(gathered[:, 1].sum().item())
                         eval_batches = float(gathered[:, 2].sum().item())
+                        eval_cls_loss_sum = float(gathered[:, 3].sum().item())
+                        eval_cls_batches = float(gathered[:, 4].sum().item())
+                        eval_fape_loss_sum = float(gathered[:, 5].sum().item())
+                        eval_fape_batches = float(gathered[:, 6].sum().item())
 
                 eval_loss = eval_loss_sum / max(1.0, eval_batches)
                 eval_acc = eval_acc_sum / max(1.0, eval_batches)
+                eval_cls_loss = (
+                    eval_cls_loss_sum / max(1.0, eval_cls_batches)
+                    if eval_cls_batches > 0
+                    else None
+                )
+                eval_fape_loss = (
+                    eval_fape_loss_sum / max(1.0, eval_fape_batches)
+                    if eval_fape_batches > 0
+                    else None
+                )
+                eval_ppl = (
+                    math.exp(eval_cls_loss) if eval_cls_loss is not None else None
+                )
 
                 if is_main:
-                    printer(f"eval | loss {eval_loss:.4f} | acc {eval_acc:.4f}")
+                    msg = f"eval | loss {eval_loss:.4f} | acc {eval_acc:.4f}"
+                    if eval_cls_loss is not None and eval_ppl is not None:
+                        msg += f" | cls {eval_cls_loss:.4f} | ppl {eval_ppl:.2f}"
+                    if eval_fape_loss is not None:
+                        msg += f" | fape {eval_fape_loss:.4f}"
+                    printer(msg)
                     if wb is not None:
-                        wb.log(
-                            {"eval/loss": eval_loss, "eval/acc": eval_acc},
-                            step=global_step + 1,
-                        )
+                        payload: dict[str, float] = {
+                            "eval/loss": float(eval_loss),
+                            "eval/acc": float(eval_acc),
+                        }
+                        if eval_cls_loss is not None and eval_ppl is not None:
+                            payload["eval/cls_loss"] = float(eval_cls_loss)
+                            payload["eval/ppl"] = float(eval_ppl)
+                        if eval_fape_loss is not None:
+                            payload["eval/fape_loss"] = float(eval_fape_loss)
+                        wb.log(payload, step=global_step + 1)
 
             global_step += 1
             if global_step >= max_steps:
