@@ -23,6 +23,20 @@ def _maybe_get_accelerator():
         return None
 
 
+def _get_model_device(model: nn.Module, accelerator) -> torch.device:
+    """
+    Resolve the device to place tensors on, compatible with both plain nn.Module
+    and models wrapped by Accelerate/DDP.
+    """
+    if accelerator is not None:
+        return accelerator.device
+    # Fall back to the device of the first parameter (or CPU if model is empty)
+    try:
+        return next(model.parameters()).device
+    except StopIteration:
+        return torch.device("cpu")
+
+
 def _build_scheduler(
     optimizer: torch.optim.Optimizer, *, warmup_steps: int, total_steps: int
 ):
@@ -299,8 +313,9 @@ def run_training(cfg: DictConfig):
         for batch in train_loader:
             if accelerator is None:
                 tokens, labels = batch
-                tokens = tokens.to(model.embed.weight.device)
-                labels = labels.to(model.embed.weight.device)
+                _dev = _get_model_device(model, accelerator)
+                tokens = tokens.to(_dev)
+                labels = labels.to(_dev)
             else:
                 tokens, labels = batch
 
@@ -399,8 +414,9 @@ def run_training(cfg: DictConfig):
                     for ev in eval_loader:
                         etok, elab = ev
                         if accelerator is None:
-                            etok = etok.to(model.embed.weight.device)
-                            elab = elab.to(model.embed.weight.device)
+                            _dev = _get_model_device(model, accelerator)
+                            etok = etok.to(_dev)
+                            elab = elab.to(_dev)
                         out = model(tokens=etok, labels=elab, ignore_index=ignore_index)
                         eval_loss_sum += float(out["loss"].item())
                         eval_acc_sum += _compute_accuracy(
@@ -421,6 +437,7 @@ def run_training(cfg: DictConfig):
 
                 # Aggregate across processes if using Accelerate
                 if accelerator:
+                    metrics_device = accelerator.device
                     metrics_local = torch.tensor(
                         [
                             eval_loss_sum,
@@ -432,7 +449,7 @@ def run_training(cfg: DictConfig):
                             eval_fape_batches,
                         ],
                         dtype=torch.float32,  # float64 not supported on some accelerators (e.g., MPS)
-                        device=model.embed.weight.device,
+                        device=metrics_device,
                     )
                     gathered = accelerator.gather_for_metrics(metrics_local)
                     # gathered can be shape [7] on single process or [N, 7] on multi
